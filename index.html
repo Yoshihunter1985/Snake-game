@@ -29,7 +29,8 @@ html,body{
   z-index:0;
 }
 
-/* Phone: original 500x539, displayed at scale x2.4 = 1200x1294px */
+/* Phone: 500x539 at scale x2.4 = 1200x1294px, centred in 1080px page
+   overflow is fine — phone-wrap just clips at edges                    */
 #phone-wrap{
   position:absolute;
   left:50%;top:50%;
@@ -39,7 +40,6 @@ html,body{
   z-index:1;
 }
 
-/* Phone PNG sits on top — transparent bg + transparent screen hole */
 #phone-img{
   position:absolute;inset:0;
   width:100%;height:100%;
@@ -48,9 +48,8 @@ html,body{
   pointer-events:none;
 }
 
-/* Game screen behind phone, aligned to screen hole
-   Hole at scale x2.4: left=413, top=358, width=372, height=266
-   Expand 4px each side so bezel frames it neatly */
+/* Screen hole at scale x2.4: left=413,top=358,w=372,h=266
+   Expand 4px each side so bezel frames it                              */
 #screen-area{
   position:absolute;
   left:409px;
@@ -62,9 +61,10 @@ html,body{
   overflow:hidden;
 }
 
+/* Score moved down 8px so it sits visibly inside the screen            */
 #score-hud{
   position:absolute;
-  top:4px;left:6px;
+  top:12px;left:6px;
   font-size:11px;
   color:#0f380f;
   z-index:10;
@@ -72,12 +72,13 @@ html,body{
   white-space:nowrap;
 }
 
+/* Canvas starts below score bar                                        */
 canvas{
   display:block;
   image-rendering:pixelated;
   image-rendering:crisp-edges;
   position:absolute;
-  left:0;top:20px;
+  left:0;top:28px;
 }
 
 .screen-ov{
@@ -87,9 +88,7 @@ canvas{
   align-items:center;justify-content:center;
   gap:10px;z-index:20;padding:14px;
 }
-.screen-ov .logo-img{
-  width:92%;display:block;
-}
+.screen-ov .logo-img{width:92%;display:block;}
 .pxt{
   font-family:'Press Start 2P',monospace;
   color:#0f380f;text-align:center;line-height:1.7;
@@ -97,8 +96,11 @@ canvas{
 .blink{animation:blink 0.9s step-end infinite;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 
-/* Key zones — pixel-picker coords x scale 2.4
-   Each zone 110x85px centred on key centre               */
+/* ── Key touch zones ────────────────────────────────────────────────────
+   Positioned in phone-wrap coords (phone-wrap is centred, left=-60px)
+   Key centre in wrap → zone left = centre_x - 55 (half of 110px zone)
+   Key centre in wrap → zone top  = centre_y - 42 (half of  85px zone)
+   ─────────────────────────────────────────────────────────────────────*/
 .key-zone{
   position:absolute;
   z-index:10;
@@ -157,9 +159,8 @@ canvas{
       </div>
     </div>
 
-    <!-- phone_processed.png: transparent bg + transparent screen hole -->
     <img id="phone-img"
-         src="https://yoshihunter1985.github.io/Snake-game/phone_processed.png?v=2"
+         src="https://yoshihunter1985.github.io/Snake-game/phone_processed.png?v=3"
          alt="">
 
     <div class="key-zone" id="k1"></div>
@@ -192,12 +193,12 @@ canvas{
   const scEl=document.getElementById('sc');
   const fsEl=document.getElementById('fs');
 
-  // Screen area 380x(274-20)=380x254 for canvas
+  // Screen 380 wide, 274-28=246 tall for canvas
   const CELL=22;
   const COLS=Math.floor(380/CELL); // 17
-  const ROWS=Math.floor(254/CELL); // 11
-  canvas.width=COLS*CELL;   // 374
-  canvas.height=ROWS*CELL;  // 242
+  const ROWS=Math.floor(246/CELL); // 11
+  canvas.width=COLS*CELL;
+  canvas.height=ROWS*CELL;
 
   const TAIL_COLOURS=[
     '#1E90B3','#135B9E','#25408F','#932789',
@@ -295,7 +296,9 @@ canvas{
   function bindKey(id,fn){
     const el=document.getElementById(id);if(!el)return;
     let touched=false;
-    el.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();touched=true;fn();},{passive:false});
+    el.addEventListener('touchstart',e=>{
+      e.preventDefault();e.stopPropagation();touched=true;fn();
+    },{passive:false});
     el.addEventListener('click',e=>{if(touched){touched=false;return;}fn();});
   }
 
