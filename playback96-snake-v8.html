@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920, initial-scale=1.0">
+<title>Playback96 Snake</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+
+html,body{
+  width:1080px; height:1920px;
+  overflow:hidden;
+  background:#111;
+  font-family:'Press Start 2P',monospace;
+}
+
+#root{
+  position:relative;
+  width:1080px; height:1920px;
+  overflow:hidden;
+}
+
+#bg{
+  position:absolute; inset:0;
+  background-image:url('https://yoshihunter1985.github.io/Snake-game/background.jpg');
+  background-size:cover;
+  background-position:center;
+  opacity:0.4;
+  z-index:0;
+}
+
+/* Phone wrapper
+   Original image: 500x539 — display at 1000x1078px, centred */
+#phone-wrap{
+  position:absolute;
+  left:50%; top:50%;
+  transform:translate(-50%,-50%);
+  width:1000px;
+  height:1078px;
+  z-index:1;
+}
+
+/* Phone image — transparent bg + transparent screen hole
+   Sits on TOP (z-index:3), game screen behind it (z-index:2)
+   No blend mode needed — image already has transparency */
+#phone-img{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  display:block;
+  z-index:3;
+  pointer-events:none;
+}
+
+/* Game screen — sits BEHIND phone image through the transparent screen hole
+   Screen hole in 500x539 original: x=173-323, y=150-294
+   At 1000x1078 (scale ×2):
+     left=346px, top=300px, width=300px, height=288px
+   Make it slightly WIDER than hole so bezel neatly frames it:
+     expand by 6px each side → left=340, width=312 */
+#screen-area{
+  position:absolute;
+  left:340px;
+  top:298px;
+  width:314px;
+  height:292px;
+  z-index:2;
+  background:#8bac0f;
+  overflow:hidden;
+}
+
+#score-hud{
+  position:absolute;
+  top:4px; left:5px;
+  font-size:9px;
+  color:#0f380f;
+  z-index:10;
+  pointer-events:none;
+  white-space:nowrap;
+}
+
+canvas{
+  display:block;
+  image-rendering:pixelated;
+  image-rendering:crisp-edges;
+  position:absolute;
+  left:0; top:18px;
+}
+
+.screen-ov{
+  position:absolute; inset:0;
+  background:#8bac0f;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:10px; z-index:20; padding:12px;
+}
+
+.screen-ov .logo-img{
+  width:94%;
+  display:block;
+  filter:none;
+}
+
+.pxt{
+  font-family:'Press Start 2P',monospace;
+  color:#0f380f;
+  text-align:center;
+  line-height:1.7;
+}
+.blink{ animation:blink 0.9s step-end infinite; }
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ── Key touch zones ─────────────────────────────────────────────────────
+   Original key centres in 500x539: cols=[137,249,362], rows=[346,379,418,454]
+   At scale ×2 (1000x1078): cols=[274,498,724], rows=[692,758,836,908]
+   Each zone 110×80px centred on key */
+.key-zone{
+  position:absolute;
+  z-index:10;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+  /* background:rgba(255,0,0,0.2); */ /* debug */
+}
+
+/* Row 1: 1=UP-LEFT, 2=UP, 3=UP-RIGHT */
+#k1{ left:219px;  top:652px; width:110px; height:80px; }
+#k2{ left:443px;  top:652px; width:110px; height:80px; }
+#k3{ left:669px;  top:652px; width:110px; height:80px; }
+
+/* Row 2: 4=LEFT, 5=START, 6=RIGHT */
+#k4{ left:219px;  top:718px; width:110px; height:80px; }
+#k5{ left:443px;  top:718px; width:110px; height:80px; }
+#k6{ left:669px;  top:718px; width:110px; height:80px; }
+
+/* Row 3: 7, 8=DOWN, 9 */
+#k7{ left:219px;  top:796px; width:110px; height:80px; }
+#k8{ left:443px;  top:796px; width:110px; height:80px; }
+#k9{ left:669px;  top:796px; width:110px; height:80px; }
+
+/* Row 4: *, 0, # */
+#ks{ left:219px;  top:868px; width:110px; height:80px; }
+#k0{ left:443px;  top:868px; width:110px; height:80px; }
+#kh{ left:669px;  top:868px; width:110px; height:80px; }
+</style>
+</head>
+<body>
+<div id="root">
+  <div id="bg"></div>
+  <div id="phone-wrap">
+
+    <!-- Game screen BEHIND phone (through transparent screen hole) -->
+    <div id="screen-area">
+      <div id="score-hud">SCORE: <span id="sc">0</span></div>
+      <canvas id="gc"></canvas>
+
+      <div class="screen-ov" id="ss">
+        <img class="logo-img"
+             src="https://yoshihunter1985.github.io/Snake-game/logo_transparent%20(1).png"
+             alt="Playback96">
+        <div class="pxt" style="font-size:8px;">SNAKE</div>
+        <div class="pxt blink" style="font-size:7px;">PRESS 5 TO START</div>
+        <div class="pxt" style="font-size:6px;">2&#8593;&nbsp;4&#8592;&nbsp;6&#8594;&nbsp;8&#8595;</div>
+      </div>
+
+      <div class="screen-ov" id="gos" style="display:none;">
+        <img class="logo-img"
+             src="https://yoshihunter1985.github.io/Snake-game/logo_transparent%20(1).png"
+             alt="Playback96">
+        <div class="pxt" style="font-size:9px;">GAME OVER</div>
+        <div class="pxt" id="fs" style="font-size:7px;"></div>
+        <div class="pxt blink" style="font-size:6px;">PRESS 5 TO PLAY AGAIN</div>
+      </div>
+    </div>
+
+    <!-- Phone image on top — bg + screen already transparent -->
+    <img id="phone-img"
+         src="https://yoshihunter1985.github.io/Snake-game/phone_processed.png"
+         alt="">
+
+    <div class="key-zone" id="k1"></div>
+    <div class="key-zone" id="k2"></div>
+    <div class="key-zone" id="k3"></div>
+    <div class="key-zone" id="k4"></div>
+    <div class="key-zone" id="k5"></div>
+    <div class="key-zone" id="k6"></div>
+    <div class="key-zone" id="k7"></div>
+    <div class="key-zone" id="k8"></div>
+    <div class="key-zone" id="k9"></div>
+    <div class="key-zone" id="ks"></div>
+    <div class="key-zone" id="k0"></div>
+    <div class="key-zone" id="kh"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const GH = 'https://yoshihunter1985.github.io/Snake-game/';
+
+  function mkImg(name){
+    const i = new Image();
+    i.crossOrigin = 'anonymous';
+    i.src = GH + name;
+    return i;
+  }
+
+  const IMG_WALKMAN  = mkImg('Walkman.png');
+  const IMG_CASSETTE = mkImg('cassette.png');
+
+  const canvas = document.getElementById('gc');
+  const ctx    = canvas.getContext('2d');
+  const ss     = document.getElementById('ss');
+  const gos    = document.getElementById('gos');
+  const scEl   = document.getElementById('sc');
+  const fsEl   = document.getElementById('fs');
+
+  // Screen area: 314x(292-18) = 314x274 for game canvas
+  const CELL = 22;
+  const COLS = Math.floor(314/CELL);  // 14
+  const ROWS = Math.floor(274/CELL);  // 12
+  canvas.width  = COLS * CELL;
+  canvas.height = ROWS * CELL;
+
+  const TAIL_COLOURS = [
+    '#1E90B3','#135B9E','#25408F','#932789',
+    '#E23D96','#DA2128','#F26522','#EF9221','#F5D010'
+  ];
+
+  let snake, dir, nextDir, food, score, running, loopId;
+
+  function init(){
+    const mx = Math.floor(COLS/2);
+    const my = Math.floor(ROWS/2);
+    snake   = [{x:mx,y:my},{x:mx-1,y:my},{x:mx-2,y:my}];
+    dir     = {x:1,y:0};
+    nextDir = {x:1,y:0};
+    score   = 0;
+    running = true;
+    ss.style.display  = 'none';
+    gos.style.display = 'none';
+    scEl.textContent  = '0';
+    placeFood();
+    clearInterval(loopId);
+    loopId = setInterval(tick, 150);
+    draw();
+  }
+
+  function showGameOver(){
+    running = false;
+    clearInterval(loopId);
+    fsEl.textContent  = 'SCORE: ' + score;
+    gos.style.display = 'flex';
+  }
+
+  function pressStart(){
+    if(running) return;
+    init();
+  }
+
+  function placeFood(){
+    let fx, fy, tries = 0;
+    do {
+      fx = Math.floor(Math.random() * COLS);
+      fy = Math.floor(Math.random() * ROWS);
+      tries++;
+    } while(tries < 500 && snake.some(s => s.x===fx && s.y===fy));
+    food = {x:fx, y:fy};
+  }
+
+  function tick(){
+    if(!running) return;
+    dir = nextDir;
+    const head = {
+      x: (snake[0].x + dir.x + COLS) % COLS,
+      y: (snake[0].y + dir.y + ROWS) % ROWS
+    };
+    if(snake.some(s => s.x===head.x && s.y===head.y)){
+      showGameOver();
+      return;
+    }
+    snake.unshift(head);
+    if(head.x===food.x && head.y===food.y){
+      score++;
+      scEl.textContent = score;
+      placeFood();
+    } else {
+      snake.pop();
+    }
+    draw();
+  }
+
+  function drawMusicNote(ctx, cx, cy, size, colour){
+    const s = size * 0.82;
+    ctx.fillStyle   = colour;
+    ctx.strokeStyle = colour;
+    ctx.lineWidth   = s * 0.13;
+    const noteW = s*0.38, noteH = s*0.28;
+    const headX = cx - s*0.05, headY = cy + s*0.22;
+    ctx.save();
+    ctx.translate(headX, headY);
+    ctx.rotate(-0.4);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, noteW/2, noteH/2, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+    const stemX = headX + noteW*0.38;
+    const stemTop = cy - s*0.30;
+    ctx.beginPath();
+    ctx.moveTo(stemX, headY - noteH*0.1);
+    ctx.lineTo(stemX, stemTop);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(stemX, stemTop);
+    ctx.bezierCurveTo(stemX+s*0.28,stemTop+s*0.04,stemX+s*0.22,stemTop+s*0.20,stemX+s*0.05,stemTop+s*0.30);
+    ctx.stroke();
+  }
+
+  function draw(){
+    ctx.fillStyle = '#8bac0f';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for(let i=1; i<snake.length; i++){
+      const seg = snake[i];
+      const col = TAIL_COLOURS[(i-1) % TAIL_COLOURS.length];
+      drawMusicNote(ctx, seg.x*CELL+CELL/2, seg.y*CELL+CELL/2, CELL, col);
+    }
+
+    const h = snake[0];
+    const hx = h.x*CELL, hy = h.y*CELL;
+    if(IMG_WALKMAN.complete && IMG_WALKMAN.naturalWidth>0){
+      ctx.drawImage(IMG_WALKMAN, hx, hy, CELL, CELL);
+    } else {
+      ctx.fillStyle=TAIL_COLOURS[0];
+      ctx.fillRect(hx+1,hy+1,CELL-2,CELL-2);
+    }
+
+    const fx=food.x*CELL, fy=food.y*CELL;
+    if(IMG_CASSETTE.complete && IMG_CASSETTE.naturalWidth>0){
+      ctx.drawImage(IMG_CASSETTE, fx, fy, CELL, CELL);
+    } else {
+      ctx.fillStyle='#F5D010';
+      ctx.fillRect(fx+2,fy+2,CELL-4,CELL-4);
+    }
+  }
+
+  function setDir(dx,dy){
+    if(!running) return;
+    if(dx===-dir.x && dy===-dir.y) return;
+    nextDir={x:dx,y:dy};
+  }
+
+  document.addEventListener('keydown',e=>{
+    const k=e.key;
+    if(k==='5'||k==='Enter'||k===' '){e.preventDefault();pressStart();return;}
+    if(k==='2'||k==='ArrowUp')    {e.preventDefault();setDir(0,-1);}
+    if(k==='8'||k==='ArrowDown')  {e.preventDefault();setDir(0,1);}
+    if(k==='4'||k==='ArrowLeft')  {e.preventDefault();setDir(-1,0);}
+    if(k==='6'||k==='ArrowRight') {e.preventDefault();setDir(1,0);}
+  });
+
+  function bindKey(id,fn){
+    const el=document.getElementById(id);
+    if(!el) return;
+    let touched=false;
+    el.addEventListener('touchstart',e=>{
+      e.preventDefault(); e.stopPropagation();
+      touched=true; fn();
+    },{passive:false});
+    el.addEventListener('click',e=>{
+      if(touched){touched=false;return;}
+      fn();
+    });
+  }
+
+  bindKey('k2',()=>setDir(0,-1));
+  bindKey('k4',()=>setDir(-1,0));
+  bindKey('k5',pressStart);
+  bindKey('k6',()=>setDir(1,0));
+  bindKey('k8',()=>setDir(0,1));
+
+  IMG_WALKMAN.onload  = ()=>{ if(running) draw(); };
+  IMG_CASSETTE.onload = ()=>{ if(running) draw(); };
+
+  ctx.fillStyle='#8bac0f';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+})();
+</script>
+</body>
+</html>
