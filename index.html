@@ -20,7 +20,6 @@ html,body{
   overflow:hidden;
 }
 
-/* Full-screen brushstroke background */
 #bg{
   position:absolute;inset:0;
   background-image:url('https://yoshihunter1985.github.io/Snake-game/background.jpg');
@@ -30,8 +29,7 @@ html,body{
   z-index:0;
 }
 
-/* Phone wrapper — original 500x539, displayed at 1200x1295 (scale ×2.4)
-   Centred on screen, taking up most of the portrait height              */
+/* Phone: original 500x539, displayed at scale x2.4 = 1200x1294px */
 #phone-wrap{
   position:absolute;
   left:50%;top:50%;
@@ -41,8 +39,7 @@ html,body{
   z-index:1;
 }
 
-/* Phone image — transparent background + transparent screen hole
-   Sits on TOP (z-index 3) so it frames the game canvas behind it       */
+/* Phone PNG sits on top — transparent bg + transparent screen hole */
 #phone-img{
   position:absolute;inset:0;
   width:100%;height:100%;
@@ -51,20 +48,15 @@ html,body{
   pointer-events:none;
 }
 
-/* Game screen — sits BEHIND the phone (z-index 2)
-   Pixel-picker screen coords (in 500x539 original):
-     left=171, top=147, right=328, bottom=261  → 157×114px
-   At scale ×2.4:
-     left=410, top=353, width=377, height=274
-   We make it slightly WIDER than the hole so the bezel frames it:
-     expand 4px each side → left=406, width=385
-   And slightly taller: top=349, height=282                             */
+/* Game screen behind phone, aligned to screen hole
+   Hole at scale x2.4: left=413, top=358, width=372, height=266
+   Expand 4px each side so bezel frames it neatly */
 #screen-area{
   position:absolute;
-  left:406px;
-  top:349px;
-  width:385px;
-  height:282px;
+  left:409px;
+  top:354px;
+  width:380px;
+  height:274px;
   z-index:2;
   background:#8bac0f;
   overflow:hidden;
@@ -88,7 +80,6 @@ canvas{
   left:0;top:20px;
 }
 
-/* Screen overlays */
 .screen-ov{
   position:absolute;inset:0;
   background:#8bac0f;
@@ -106,38 +97,36 @@ canvas{
 .blink{animation:blink 0.9s step-end infinite;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 
-/* ── Key touch zones ────────────────────────────────────────────────────
-   Key centres from pixel-picker (500x539 image, scale ×2.4):
-   Key 1:(364,724)  Key 2:(498,746)  Key 3:(630,724)
-   Key 4:(366,804)  Key 5:(496,816)  Key 6:(632,802)
-   Key 7:(376,878)  Key 8:(498,894)  Key 9:(616,876)
-   Key *:(378,952)  Key 0:(498,966)  Key #:(618,946)
-   Each zone 120×90px centred on key                                    */
+/* Key zones — pixel-picker coords x scale 2.4
+   Each zone 110x85px centred on key centre               */
 .key-zone{
   position:absolute;
   z-index:10;
   cursor:pointer;
   -webkit-tap-highlight-color:transparent;
   user-select:none;
-  /* Uncomment to debug: background:rgba(255,0,0,0.25);border:1px solid red; */
+  /* background:rgba(255,0,0,0.25);border:1px solid red; */
 }
 
-/* Row 1 — 1, 2, 3 */
-#k1{left:304px;top:701px;width:120px;height:90px;}
-#k2{left:438px;top:701px;width:120px;height:90px;}
-#k3{left:570px;top:701px;width:120px;height:90px;}
-/* Row 2 — 4, 5, 6 */
-#k4{left:306px;top:771px;width:120px;height:90px;}
-#k5{left:436px;top:771px;width:120px;height:90px;}
-#k6{left:572px;top:771px;width:120px;height:90px;}
-/* Row 3 — 7, 8, 9 */
-#k7{left:316px;top:838px;width:120px;height:90px;}
-#k8{left:438px;top:838px;width:120px;height:90px;}
-#k9{left:556px;top:838px;width:120px;height:90px;}
-/* Row 4 — *, 0, # */
-#ks{left:318px;top:907px;width:120px;height:90px;}
-#k0{left:438px;top:921px;width:120px;height:90px;}
-#kh{left:558px;top:901px;width:120px;height:90px;}
+/* Row 1: 1(437,869)  2(598,895)  3(756,869) */
+#k1{left:382px;top:827px;width:110px;height:85px;}
+#k2{left:543px;top:853px;width:110px;height:85px;}
+#k3{left:701px;top:827px;width:110px;height:85px;}
+
+/* Row 2: 4(439,965)  5(595,979)  6(758,962) */
+#k4{left:384px;top:923px;width:110px;height:85px;}
+#k5{left:540px;top:937px;width:110px;height:85px;}
+#k6{left:703px;top:920px;width:110px;height:85px;}
+
+/* Row 3: 7(451,1054)  8(598,1073)  9(739,1051) */
+#k7{left:396px;top:1012px;width:110px;height:85px;}
+#k8{left:543px;top:1031px;width:110px;height:85px;}
+#k9{left:684px;top:1009px;width:110px;height:85px;}
+
+/* Row 4: *(454,1142)  0(598,1159)  #(742,1135) */
+#ks{left:399px;top:1100px;width:110px;height:85px;}
+#k0{left:543px;top:1117px;width:110px;height:85px;}
+#kh{left:687px;top:1093px;width:110px;height:85px;}
 </style>
 </head>
 <body>
@@ -145,12 +134,10 @@ canvas{
   <div id="bg"></div>
   <div id="phone-wrap">
 
-    <!-- Game screen sits BEHIND phone through transparent screen hole -->
     <div id="screen-area">
       <div id="score-hud">SCORE: <span id="sc">0</span></div>
       <canvas id="gc"></canvas>
 
-      <!-- Start screen -->
       <div class="screen-ov" id="ss">
         <img class="logo-img"
              src="https://yoshihunter1985.github.io/Snake-game/logo_transparent%20(1).png"
@@ -160,7 +147,6 @@ canvas{
         <div class="pxt" style="font-size:7px;">2&#8593;&nbsp;4&#8592;&nbsp;6&#8594;&nbsp;8&#8595;</div>
       </div>
 
-      <!-- Game over -->
       <div class="screen-ov" id="gos" style="display:none;">
         <img class="logo-img"
              src="https://yoshihunter1985.github.io/Snake-game/logo_transparent%20(1).png"
@@ -171,12 +157,11 @@ canvas{
       </div>
     </div>
 
-    <!-- Phone image on top — transparent bg + transparent screen hole -->
+    <!-- phone_processed.png: transparent bg + transparent screen hole -->
     <img id="phone-img"
-         src="https://yoshihunter1985.github.io/Snake-game/phone_processed.png"
+         src="https://yoshihunter1985.github.io/Snake-game/phone_processed.png?v=2"
          alt="">
 
-    <!-- Key touch zones — pixel-accurate to each button -->
     <div class="key-zone" id="k1"></div>
     <div class="key-zone" id="k2"></div>
     <div class="key-zone" id="k3"></div>
@@ -194,39 +179,39 @@ canvas{
 
 <script>
 (function(){
-  const GH = 'https://yoshihunter1985.github.io/Snake-game/';
-  function mkImg(n){ const i=new Image(); i.crossOrigin='anonymous'; i.src=GH+n; return i; }
+  const GH='https://yoshihunter1985.github.io/Snake-game/';
+  function mkImg(n){const i=new Image();i.crossOrigin='anonymous';i.src=GH+n;return i;}
 
   const IMG_WALKMAN  = mkImg('Walkman.png');
   const IMG_CASSETTE = mkImg('cassette.png');
 
-  const canvas = document.getElementById('gc');
-  const ctx    = canvas.getContext('2d');
-  const ss     = document.getElementById('ss');
-  const gos    = document.getElementById('gos');
-  const scEl   = document.getElementById('sc');
-  const fsEl   = document.getElementById('fs');
+  const canvas=document.getElementById('gc');
+  const ctx=canvas.getContext('2d');
+  const ss=document.getElementById('ss');
+  const gos=document.getElementById('gos');
+  const scEl=document.getElementById('sc');
+  const fsEl=document.getElementById('fs');
 
-  // Canvas: screen-area is 385×(282-20)=385×262 for game
-  const CELL = 22;
-  const COLS = Math.floor(385/CELL);  // 17
-  const ROWS = Math.floor(262/CELL);  // 11
-  canvas.width  = COLS*CELL;   // 374
-  canvas.height = ROWS*CELL;   // 242
+  // Screen area 380x(274-20)=380x254 for canvas
+  const CELL=22;
+  const COLS=Math.floor(380/CELL); // 17
+  const ROWS=Math.floor(254/CELL); // 11
+  canvas.width=COLS*CELL;   // 374
+  canvas.height=ROWS*CELL;  // 242
 
-  const TAIL_COLOURS = [
+  const TAIL_COLOURS=[
     '#1E90B3','#135B9E','#25408F','#932789',
     '#E23D96','#DA2128','#F26522','#EF9221','#F5D010'
   ];
 
-  let snake, dir, nextDir, food, score, running, loopId;
+  let snake,dir,nextDir,food,score,running,loopId;
 
   function init(){
-    const mx=Math.floor(COLS/2), my=Math.floor(ROWS/2);
+    const mx=Math.floor(COLS/2),my=Math.floor(ROWS/2);
     snake=[{x:mx,y:my},{x:mx-1,y:my},{x:mx-2,y:my}];
-    dir={x:1,y:0}; nextDir={x:1,y:0};
-    score=0; running=true;
-    ss.style.display='none'; gos.style.display='none';
+    dir={x:1,y:0};nextDir={x:1,y:0};
+    score=0;running=true;
+    ss.style.display='none';gos.style.display='none';
     scEl.textContent='0';
     placeFood();
     clearInterval(loopId);
@@ -235,27 +220,27 @@ canvas{
   }
 
   function showGameOver(){
-    running=false; clearInterval(loopId);
+    running=false;clearInterval(loopId);
     fsEl.textContent='SCORE: '+score;
     gos.style.display='flex';
   }
 
-  function pressStart(){ if(running) return; init(); }
+  function pressStart(){if(running)return;init();}
 
   function placeFood(){
     let fx,fy,t=0;
-    do{ fx=Math.floor(Math.random()*COLS); fy=Math.floor(Math.random()*ROWS); t++; }
-    while(t<500 && snake.some(s=>s.x===fx&&s.y===fy));
+    do{fx=Math.floor(Math.random()*COLS);fy=Math.floor(Math.random()*ROWS);t++;}
+    while(t<500&&snake.some(s=>s.x===fx&&s.y===fy));
     food={x:fx,y:fy};
   }
 
   function tick(){
-    if(!running) return;
+    if(!running)return;
     dir=nextDir;
-    const head={x:(snake[0].x+dir.x+COLS)%COLS, y:(snake[0].y+dir.y+ROWS)%ROWS};
-    if(snake.some(s=>s.x===head.x&&s.y===head.y)){ showGameOver(); return; }
+    const head={x:(snake[0].x+dir.x+COLS)%COLS,y:(snake[0].y+dir.y+ROWS)%ROWS};
+    if(snake.some(s=>s.x===head.x&&s.y===head.y)){showGameOver();return;}
     snake.unshift(head);
-    if(head.x===food.x&&head.y===food.y){ score++; scEl.textContent=score; placeFood(); }
+    if(head.x===food.x&&head.y===food.y){score++;scEl.textContent=score;placeFood();}
     else snake.pop();
     draw();
   }
@@ -265,12 +250,12 @@ canvas{
     ctx.fillStyle=ctx.strokeStyle=col;
     ctx.lineWidth=s*0.13;
     const nw=s*0.38,nh=s*0.28,hx=cx-s*0.05,hy=cy+s*0.22;
-    ctx.save(); ctx.translate(hx,hy); ctx.rotate(-0.4);
-    ctx.beginPath(); ctx.ellipse(0,0,nw/2,nh/2,0,0,Math.PI*2); ctx.fill();
+    ctx.save();ctx.translate(hx,hy);ctx.rotate(-0.4);
+    ctx.beginPath();ctx.ellipse(0,0,nw/2,nh/2,0,0,Math.PI*2);ctx.fill();
     ctx.restore();
-    const sx=hx+nw*0.38, st=cy-s*0.30;
-    ctx.beginPath(); ctx.moveTo(sx,hy-nh*0.1); ctx.lineTo(sx,st); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(sx,st);
+    const sx=hx+nw*0.38,st=cy-s*0.30;
+    ctx.beginPath();ctx.moveTo(sx,hy-nh*0.1);ctx.lineTo(sx,st);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(sx,st);
     ctx.bezierCurveTo(sx+s*0.28,st+s*0.04,sx+s*0.22,st+s*0.20,sx+s*0.05,st+s*0.30);
     ctx.stroke();
   }
@@ -279,22 +264,22 @@ canvas{
     ctx.fillStyle='#8bac0f';
     ctx.fillRect(0,0,canvas.width,canvas.height);
     for(let i=1;i<snake.length;i++){
-      const s=snake[i], col=TAIL_COLOURS[(i-1)%TAIL_COLOURS.length];
-      drawNote(s.x*CELL+CELL/2, s.y*CELL+CELL/2, CELL, col);
+      const s=snake[i],col=TAIL_COLOURS[(i-1)%TAIL_COLOURS.length];
+      drawNote(s.x*CELL+CELL/2,s.y*CELL+CELL/2,CELL,col);
     }
-    const hd=snake[0], hx=hd.x*CELL, hy=hd.y*CELL;
+    const hd=snake[0],hx=hd.x*CELL,hy=hd.y*CELL;
     if(IMG_WALKMAN.complete&&IMG_WALKMAN.naturalWidth>0)
       ctx.drawImage(IMG_WALKMAN,hx,hy,CELL,CELL);
-    else{ ctx.fillStyle=TAIL_COLOURS[0]; ctx.fillRect(hx+1,hy+1,CELL-2,CELL-2); }
-    const fx=food.x*CELL, fy=food.y*CELL;
+    else{ctx.fillStyle=TAIL_COLOURS[0];ctx.fillRect(hx+1,hy+1,CELL-2,CELL-2);}
+    const fx=food.x*CELL,fy=food.y*CELL;
     if(IMG_CASSETTE.complete&&IMG_CASSETTE.naturalWidth>0)
       ctx.drawImage(IMG_CASSETTE,fx,fy,CELL,CELL);
-    else{ ctx.fillStyle='#F5D010'; ctx.fillRect(fx+2,fy+2,CELL-4,CELL-4); }
+    else{ctx.fillStyle='#F5D010';ctx.fillRect(fx+2,fy+2,CELL-4,CELL-4);}
   }
 
   function setDir(dx,dy){
-    if(!running) return;
-    if(dx===-dir.x&&dy===-dir.y) return;
+    if(!running)return;
+    if(dx===-dir.x&&dy===-dir.y)return;
     nextDir={x:dx,y:dy};
   }
 
@@ -308,10 +293,10 @@ canvas{
   });
 
   function bindKey(id,fn){
-    const el=document.getElementById(id); if(!el) return;
+    const el=document.getElementById(id);if(!el)return;
     let touched=false;
     el.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();touched=true;fn();},{passive:false});
-    el.addEventListener('click',e=>{ if(touched){touched=false;return;} fn(); });
+    el.addEventListener('click',e=>{if(touched){touched=false;return;}fn();});
   }
 
   bindKey('k2',()=>setDir(0,-1));
@@ -320,8 +305,8 @@ canvas{
   bindKey('k6',()=>setDir(1,0));
   bindKey('k8',()=>setDir(0,1));
 
-  IMG_WALKMAN.onload=()=>{ if(running) draw(); };
-  IMG_CASSETTE.onload=()=>{ if(running) draw(); };
+  IMG_WALKMAN.onload=()=>{if(running)draw();};
+  IMG_CASSETTE.onload=()=>{if(running)draw();};
 
   ctx.fillStyle='#8bac0f';
   ctx.fillRect(0,0,canvas.width,canvas.height);
