@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920, initial-scale=1.0">
+<title>Playback96 Snake</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+
+html,body{
+  width:1080px; height:1920px;
+  overflow:hidden;
+  background:#111;
+  font-family:'Press Start 2P',monospace;
+}
+
+#root{
+  position:relative;
+  width:1080px; height:1920px;
+  overflow:hidden;
+}
+
+/* Full background */
+#bg{
+  position:absolute; inset:0;
+  background-image:url('https://yoshihunter1985.github.io/Snake-game/background.jpg');
+  background-size:cover;
+  background-position:center;
+  opacity:0.4;
+  z-index:0;
+}
+
+/* Phone wrapper — centred
+   Phone image is 331x548 → ratio 0.6039
+   Display at 1000x1656px */
+#phone-wrap{
+  position:absolute;
+  left:50%; top:50%;
+  transform:translate(-50%,-50%);
+  width:1000px;
+  height:1656px;
+  z-index:1;
+}
+
+/* Phone image sits on TOP using lighten blend to remove black bg */
+#phone-img{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  display:block;
+  z-index:3;
+  pointer-events:none;
+  mix-blend-mode:lighten;
+}
+
+/* Game screen — precisely behind the Nokia screen hole
+   In 331x548 original: x=104-247, y=152-256
+   At 1000x1656: left=314, top=459, width=432, height=314 */
+#screen-area{
+  position:absolute;
+  left:314px; top:459px;
+  width:432px; height:314px;
+  z-index:2;
+  background:#8bac0f;
+  overflow:hidden;
+}
+
+#score-hud{
+  position:absolute;
+  top:5px; left:6px;
+  font-size:12px;
+  color:#0f380f;
+  z-index:10;
+  pointer-events:none;
+  white-space:nowrap;
+}
+
+canvas{
+  display:block;
+  image-rendering:pixelated;
+  image-rendering:crisp-edges;
+  position:absolute;
+  left:0; top:22px;
+}
+
+/* Overlay screens */
+.screen-ov{
+  position:absolute; inset:0;
+  background:#8bac0f;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:14px; z-index:20; padding:16px;
+}
+
+/* Logo — no border/outline trick: use drop-shadow:none and no outline */
+.screen-ov .logo-img{
+  width:92%;
+  display:block;
+  /* No filter that would add a halo */
+  filter:none;
+  outline:none;
+  border:none;
+}
+
+.pxt{
+  font-family:'Press Start 2P',monospace;
+  color:#0f380f;
+  text-align:center;
+  line-height:1.7;
+}
+.blink{ animation:blink 0.9s step-end infinite; }
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ── Key touch zones ──────────────────────────────────────────────────────
+   Phone image 331x548 displayed at 1000x1656 (scale ×3.021)
+   Key centres in display coords (calculated from Nokia 3310 proportions):
+   
+   Cols:  1=305px  2=523px  3=737px
+   Rows:  1=1121px  2=1251px  3=1378px  4=1508px
+   
+   Each key zone: 120×110px centred on the key
+*/
+.key-zone{
+  position:absolute;
+  z-index:10;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+  /* Uncomment to debug positions: */
+  /* background:rgba(255,0,0,0.25); border:1px solid red; */
+}
+
+/* Row 1: 1, 2, 3 — centres at y=1121 */
+#k1{ left:245px;  top:1066px; width:120px; height:110px; }
+#k2{ left:463px;  top:1066px; width:120px; height:110px; }
+#k3{ left:677px;  top:1066px; width:120px; height:110px; }
+
+/* Row 2: 4, 5, 6 — centres at y=1251 */
+#k4{ left:245px;  top:1196px; width:120px; height:110px; }
+#k5{ left:463px;  top:1196px; width:120px; height:110px; }
+#k6{ left:677px;  top:1196px; width:120px; height:110px; }
+
+/* Row 3: 7, 8, 9 — centres at y=1378 */
+#k7{ left:245px;  top:1323px; width:120px; height:110px; }
+#k8{ left:463px;  top:1323px; width:120px; height:110px; }
+#k9{ left:677px;  top:1323px; width:120px; height:110px; }
+
+/* Row 4: *, 0, # — centres at y=1508 */
+#ks{ left:245px;  top:1453px; width:120px; height:110px; }
+#k0{ left:463px;  top:1453px; width:120px; height:110px; }
+#kh{ left:677px;  top:1453px; width:120px; height:110px; }
+</style>
+</head>
+<body>
+<div id="root">
+  <div id="bg"></div>
+  <div id="phone-wrap">
+
+    <!-- Screen sits BEHIND the phone image -->
+    <div id="screen-area">
+      <div id="score-hud">SCORE: <span id="sc">0</span></div>
+      <canvas id="gc"></canvas>
+
+      <!-- Start screen -->
+      <div class="screen-ov" id="ss">
+        <img class="logo-img"
+             src="https://yoshihunter1985.github.io/Snake-game/logo_transparent%20(1).png"
+             alt="Playback96">
+        <div class="pxt" style="font-size:11px;">SNAKE</div>
+        <div class="pxt blink" style="font-size:9px;">PRESS 5 TO START</div>
+        <div class="pxt" style="font-size:8px;">2&#8593;&nbsp;4&#8592;&nbsp;6&#8594;&nbsp;8&#8595;</div>
+      </div>
+
+      <!-- Game over screen -->
+      <div class="screen-ov" id="gos" style="display:none;">
+        <img class="logo-img"
+             src="https://yoshihunter1985.github.io/Snake-game/logo_transparent%20(1).png"
+             alt="Playback96">
+        <div class="pxt" style="font-size:12px;">GAME OVER</div>
+        <div class="pxt" id="fs" style="font-size:9px;"></div>
+        <div class="pxt blink" style="font-size:8px;">PRESS 5 TO PLAY AGAIN</div>
+      </div>
+    </div>
+
+    <!-- Phone image on top — lighten blend removes black background -->
+    <img id="phone-img"
+         src="https://yoshihunter1985.github.io/Snake-game/Phone.png"
+         alt="">
+
+    <!-- Key touch zones — exactly over each number key -->
+    <div class="key-zone" id="k1"></div>
+    <div class="key-zone" id="k2"></div>
+    <div class="key-zone" id="k3"></div>
+    <div class="key-zone" id="k4"></div>
+    <div class="key-zone" id="k5"></div>
+    <div class="key-zone" id="k6"></div>
+    <div class="key-zone" id="k7"></div>
+    <div class="key-zone" id="k8"></div>
+    <div class="key-zone" id="k9"></div>
+    <div class="key-zone" id="ks"></div>
+    <div class="key-zone" id="k0"></div>
+    <div class="key-zone" id="kh"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const GH = 'https://yoshihunter1985.github.io/Snake-game/';
+
+  function mkImg(name){
+    const i = new Image();
+    i.crossOrigin = 'anonymous';
+    i.src = GH + name;
+    return i;
+  }
+
+  const IMG_WALKMAN  = mkImg('Walkman.png');
+  const IMG_CASSETTE = mkImg('cassette.png');
+
+  const canvas = document.getElementById('gc');
+  const ctx    = canvas.getContext('2d');
+  const ss     = document.getElementById('ss');
+  const gos    = document.getElementById('gos');
+  const scEl   = document.getElementById('sc');
+  const fsEl   = document.getElementById('fs');
+
+  const CELL = 24;
+  const COLS = 18;  // 432/24
+  const ROWS = 12;  // 288/24
+  canvas.width  = COLS * CELL;
+  canvas.height = ROWS * CELL;
+
+  // Playback96 tail colours — cycle in order
+  const TAIL_COLOURS = [
+    '#1E90B3','#135B9E','#25408F','#932789',
+    '#E23D96','#DA2128','#F26522','#EF9221','#F5D010'
+  ];
+
+  let snake, dir, nextDir, food, score, running, loopId;
+
+  function init(){
+    const mx = Math.floor(COLS/2);
+    const my = Math.floor(ROWS/2);
+    snake   = [{x:mx,y:my},{x:mx-1,y:my},{x:mx-2,y:my}];
+    dir     = {x:1,y:0};
+    nextDir = {x:1,y:0};
+    score   = 0;
+    running = true;
+    ss.style.display  = 'none';
+    gos.style.display = 'none';
+    scEl.textContent  = '0';
+    placeFood();
+    clearInterval(loopId);
+    loopId = setInterval(tick, 150);
+    draw();
+  }
+
+  function showGameOver(){
+    running = false;
+    clearInterval(loopId);
+    fsEl.textContent  = 'SCORE: ' + score;
+    gos.style.display = 'flex';
+  }
+
+  function pressStart(){
+    if(running) return;
+    init();
+  }
+
+  function placeFood(){
+    let fx, fy, tries = 0;
+    do {
+      fx = Math.floor(Math.random() * COLS);
+      fy = Math.floor(Math.random() * ROWS);
+      tries++;
+    } while(tries < 500 && snake.some(s => s.x===fx && s.y===fy));
+    food = {x:fx, y:fy};
+  }
+
+  function tick(){
+    if(!running) return;
+    dir = nextDir;
+    const head = {
+      x: (snake[0].x + dir.x + COLS) % COLS,
+      y: (snake[0].y + dir.y + ROWS) % ROWS
+    };
+    if(snake.some(s => s.x===head.x && s.y===head.y)){
+      showGameOver();
+      return;
+    }
+    snake.unshift(head);
+    if(head.x === food.x && head.y === food.y){
+      score++;
+      scEl.textContent = score;
+      placeFood();
+    } else {
+      snake.pop();
+    }
+    draw();
+  }
+
+  // Draw a music note (♪) centred in a cell
+  function drawMusicNote(ctx, cx, cy, size, colour){
+    const s = size * 0.82;
+    ctx.fillStyle   = colour;
+    ctx.strokeStyle = colour;
+    ctx.lineWidth   = s * 0.13;
+
+    const noteW = s * 0.38;
+    const noteH = s * 0.28;
+    const headX = cx - s * 0.05;
+    const headY = cy + s * 0.22;
+
+    // Note head
+    ctx.save();
+    ctx.translate(headX, headY);
+    ctx.rotate(-0.4);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, noteW/2, noteH/2, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
+    // Stem
+    const stemX   = headX + noteW * 0.38;
+    const stemTop = cy - s * 0.30;
+    const stemBot = headY - noteH * 0.1;
+    ctx.beginPath();
+    ctx.moveTo(stemX, stemBot);
+    ctx.lineTo(stemX, stemTop);
+    ctx.stroke();
+
+    // Flag
+    ctx.beginPath();
+    ctx.moveTo(stemX, stemTop);
+    ctx.bezierCurveTo(
+      stemX + s*0.28, stemTop + s*0.04,
+      stemX + s*0.22, stemTop + s*0.20,
+      stemX + s*0.05, stemTop + s*0.30
+    );
+    ctx.stroke();
+  }
+
+  function draw(){
+    ctx.fillStyle = '#8bac0f';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Tail — music notes cycling brand colours
+    for(let i = 1; i < snake.length; i++){
+      const seg = snake[i];
+      const col = TAIL_COLOURS[(i-1) % TAIL_COLOURS.length];
+      drawMusicNote(ctx, seg.x*CELL + CELL/2, seg.y*CELL + CELL/2, CELL, col);
+    }
+
+    // Head — Walkman image
+    const h  = snake[0];
+    const hx = h.x * CELL, hy = h.y * CELL;
+    if(IMG_WALKMAN.complete && IMG_WALKMAN.naturalWidth > 0){
+      ctx.drawImage(IMG_WALKMAN, hx, hy, CELL, CELL);
+    } else {
+      ctx.fillStyle = TAIL_COLOURS[0];
+      ctx.fillRect(hx+1, hy+1, CELL-2, CELL-2);
+    }
+
+    // Food — cassette image
+    const fx = food.x * CELL, fy = food.y * CELL;
+    if(IMG_CASSETTE.complete && IMG_CASSETTE.naturalWidth > 0){
+      ctx.drawImage(IMG_CASSETTE, fx, fy, CELL, CELL);
+    } else {
+      ctx.fillStyle = '#F5D010';
+      ctx.fillRect(fx+2, fy+2, CELL-4, CELL-4);
+    }
+  }
+
+  // Controls
+  function setDir(dx, dy){
+    if(!running) return;
+    if(dx === -dir.x && dy === -dir.y) return;
+    nextDir = {x:dx, y:dy};
+  }
+
+  // Keyboard
+  document.addEventListener('keydown', e => {
+    const k = e.key;
+    if(k==='5'||k==='Enter'||k===' '){e.preventDefault(); pressStart(); return;}
+    if(k==='2'||k==='ArrowUp')    {e.preventDefault(); setDir(0,-1);}
+    if(k==='8'||k==='ArrowDown')  {e.preventDefault(); setDir(0,1);}
+    if(k==='4'||k==='ArrowLeft')  {e.preventDefault(); setDir(-1,0);}
+    if(k==='6'||k==='ArrowRight') {e.preventDefault(); setDir(1,0);}
+  });
+
+  // Touch/click key zones — using both touchstart AND touchend
+  // to prevent ghost clicks and ensure responsiveness
+  function bindKey(id, fn){
+    const el = document.getElementById(id);
+    if(!el) return;
+    // Prevent double-firing: use touchstart only on touch, click only on mouse
+    let touched = false;
+    el.addEventListener('touchstart', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      touched = true;
+      fn();
+    }, {passive:false});
+    el.addEventListener('click', e => {
+      if(touched){ touched = false; return; }
+      fn();
+    });
+  }
+
+  bindKey('k2', () => setDir(0,-1));   // 2 = UP
+  bindKey('k4', () => setDir(-1,0));   // 4 = LEFT
+  bindKey('k5', pressStart);            // 5 = START/ENTER
+  bindKey('k6', () => setDir(1,0));    // 6 = RIGHT
+  bindKey('k8', () => setDir(0,1));    // 8 = DOWN
+  // 1,3,7,9,0,*,# — intentionally no action
+
+  IMG_WALKMAN.onload  = () => { if(running) draw(); };
+  IMG_CASSETTE.onload = () => { if(running) draw(); };
+
+  // Initial canvas clear
+  ctx.fillStyle = '#8bac0f';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+})();
+</script>
+</body>
+</html>
